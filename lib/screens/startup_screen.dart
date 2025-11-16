@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
+import 'package:lakbay/components/custom_animation.dart';
 
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
@@ -10,32 +11,17 @@ class StartupScreen extends StatefulWidget {
 
 class _StartupScreenState extends State<StartupScreen>
     with SingleTickerProviderStateMixin {
-  double dragOffset = 0.0;
-  late AnimationController controller;
-  late Animation<double> animation;
+  final SwipeUpAnimation swipeAnim = SwipeUpAnimation();
 
   @override
   void initState() {
     super.initState();
 
-    controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
+    swipeAnim.init(
+      this,
+      _goToDashboard,
+          () => setState(() {}),
     );
-
-    animation = Tween<double>(begin: 0, end: -120).animate(
-      CurvedAnimation(parent: controller, curve: Curves.easeOut),
-    )..addListener(() {
-      setState(() {
-        dragOffset = animation.value;
-      });
-    });
-
-    controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _goToDashboard();
-      }
-    });
   }
 
   void _goToDashboard() {
@@ -45,10 +31,7 @@ class _StartupScreenState extends State<StartupScreen>
         transitionDuration: const Duration(milliseconds: 700),
         pageBuilder: (_, __, ___) => const DashboardScreen(),
         transitionsBuilder: (_, anim, __, child) {
-          return FadeTransition(
-            opacity: anim,
-            child: child,
-          );
+          return FadeTransition(opacity: anim, child: child);
         },
       ),
     );
@@ -56,16 +39,8 @@ class _StartupScreenState extends State<StartupScreen>
 
   @override
   void dispose() {
-    controller.dispose();
+    swipeAnim.dispose();
     super.dispose();
-  }
-
-  void _onDragEnd() {
-    if (dragOffset < -80) {
-      controller.forward();
-    } else {
-      controller.reverse();
-    }
   }
 
   @override
@@ -73,7 +48,7 @@ class _StartupScreenState extends State<StartupScreen>
     return Scaffold(
       body: Stack(
         children: [
-          /// Background Image
+          /// Background
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -83,15 +58,15 @@ class _StartupScreenState extends State<StartupScreen>
             ),
           ),
 
-          /// Foreground contents centered
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const SizedBox(height: 130),
+
                 /// TITLE
                 Column(
                   children: [
-                    const SizedBox(height: 30),
                     Text(
                       "Your Journey",
                       style: TextStyle(
@@ -125,22 +100,18 @@ class _StartupScreenState extends State<StartupScreen>
                   ],
                 ),
 
-                const SizedBox(height: 260),
+                const SizedBox(height: 200),
 
-                /// SWIPE UP TRACK + MOVING BUTTON
-                /// SWIPE TRACK + BUTTON (UPDATED)
                 GestureDetector(
                   onVerticalDragUpdate: (details) {
                     setState(() {
-                      dragOffset += details.delta.dy;
-                      dragOffset = dragOffset.clamp(-120.0, 0.0);
+                      swipeAnim.updateDrag(details.delta.dy);
                     });
                   },
-                  onVerticalDragEnd: (_) => _onDragEnd(),
+                  onVerticalDragEnd: (_) => swipeAnim.handleDragEnd(),
+
                   child: Column(
                     children: [
-
-                      /// TRACK — FIXED SIZE + NEW GRADIENT + 2 ARROWS
                       Container(
                         width: 89,
                         height: 198,
@@ -150,8 +121,8 @@ class _StartupScreenState extends State<StartupScreen>
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Color.fromRGBO(217, 217, 217, 0.0),   // 7.69%
-                              Color.fromRGBO(255, 255, 255, 0.8),   // 44.71%
+                              Color.fromRGBO(217, 217, 217, 0.0),
+                              Color.fromRGBO(255, 255, 255, 0.8),
                             ],
                             stops: [0.0769, 0.4471],
                           ),
@@ -160,23 +131,20 @@ class _StartupScreenState extends State<StartupScreen>
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            /// ARROW 1
                             const Positioned(
                               top: 35,
                               child: Icon(Icons.keyboard_arrow_up,
                                   size: 30, color: Colors.black87),
                             ),
 
-                            /// ARROW 2
                             const Positioned(
                               top: 65,
                               child: Icon(Icons.keyboard_arrow_up,
                                   size: 30, color: Colors.black87),
                             ),
 
-                            /// MOVING GO BUTTON (UPDATED SIZE)
                             Positioned(
-                              bottom: 10 + dragOffset.abs(),
+                              bottom: 10 + swipeAnim.dragOffset.abs(),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 150),
                                 curve: Curves.easeOut,
@@ -210,11 +178,11 @@ class _StartupScreenState extends State<StartupScreen>
                         ),
                       ),
 
-                      const SizedBox(height: 45),
+                      const SizedBox(height: 25),
 
-                      /// LOGO BOX (unchanged)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 22),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 22),
                         child: Image.asset(
                           'assets/images/lakbay_branding_white.png',
                           width: 150,
